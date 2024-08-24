@@ -1,20 +1,25 @@
 'use client'
 import React, { useState, useEffect } from 'react';
-import '../globals.css'; // CSS dosyasını içe aktarın
+import { useSearchParams } from 'next/navigation'; // useSearchParams import edin
+import '../globals.css';
 
 const GamePage: React.FC = () => {
+  const searchParams = useSearchParams();
+  const username = searchParams.get('username') || 'Player'; // URL'den kullanıcı adını al
+
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [score, setScore] = useState(0);
-  const [timeLeft, setTimeLeft] = useState(10); // Oyun süresi
-  const [gameStarted, setGameStarted] = useState(false); // Oyun başlama durumu
-  const [firstTargetClicked, setFirstTargetClicked] = useState(false); // İlk hedefe tıklama durumu
+  const [timeLeft, setTimeLeft] = useState(20); // Oyun süresi 20 saniye
+  const [gameStarted, setGameStarted] = useState(false);
+  const [firstTargetClicked, setFirstTargetClicked] = useState(false);
 
   const boxSize = 500; // Kutunun genişliği ve yüksekliği
+  const targetSize = 20; // Zor modda hedef boyutu
 
   // Rastgele pozisyon oluşturma işlevi (kutunun içinde)
   const generateRandomPosition = (): { x: number; y: number } => {
-    const x = Math.floor(Math.random() * (boxSize - 20)); // Hedef boyutunu kutu içinde sınırla
-    const y = Math.floor(Math.random() * (boxSize - 20));
+    const x = Math.floor(Math.random() * (boxSize - targetSize));
+    const y = Math.floor(Math.random() * (boxSize - targetSize));
     return { x, y };
   };
 
@@ -23,10 +28,11 @@ const GamePage: React.FC = () => {
     if (!firstTargetClicked) {
       setGameStarted(true);
       setFirstTargetClicked(true);
-      setTimeLeft(10); // Oyun süresini yeniden başlat
+      setTimeLeft(20); // Oyun süresini yeniden başlat
     } else {
       setScore(score + 1);
       setPosition(generateRandomPosition());
+      setTimeLeft(20); // Tıklama sonrası süreyi yeniden başlat
     }
   };
 
@@ -38,7 +44,6 @@ const GamePage: React.FC = () => {
       setTimeLeft((prevTime) => (prevTime > 0 ? prevTime - 1 : 0));
     }, 1000);
 
-    // Zamanlayıcıyı temizle
     if (timeLeft === 0) {
       clearInterval(gameTimer);
     }
@@ -53,9 +58,20 @@ const GamePage: React.FC = () => {
     }
   }, [firstTargetClicked]);
 
+  // Zor modda hedefin yer değiştirme süresi
+  useEffect(() => {
+    if (gameStarted && timeLeft > 0) {
+      const interval = setInterval(() => {
+        setPosition(generateRandomPosition());
+      }, 1000); // Hard mod için her 1 saniyede bir hedef pozisyonu değişir
+
+      return () => clearInterval(interval);
+    }
+  }, [gameStarted, timeLeft]);
+
   return (
     <div 
-      className="game-cursor" // CSS sınıfını buraya ekleyin
+      className="game-cursor"
       style={{
         position: 'relative',
         height: '100vh',
@@ -68,8 +84,9 @@ const GamePage: React.FC = () => {
       }}
     >
       <div style={{ position: 'absolute', top: '10px', left: '10px', color: 'white' }}>
-        <h1>Score: {score}</h1>
+        <h1 style={{ marginBottom: '10px' }}>Score: {score}</h1>
         <h2>Time Left: {timeLeft}</h2>
+        <h2>Player: {username}</h2> {/* Kullanıcı adını göster */}
       </div>
 
       <div 
@@ -89,8 +106,8 @@ const GamePage: React.FC = () => {
               position: 'absolute',
               left: position.x,
               top: position.y,
-              width: '20px',
-              height: '20px',
+              width: `${targetSize}px`,
+              height: `${targetSize}px`,
               backgroundColor: 'red',
               borderRadius: '50%',
               cursor: 'pointer'
@@ -113,8 +130,8 @@ const GamePage: React.FC = () => {
           >
             <div
               style={{
-                width: '20px',
-                height: '20px',
+                width: '40px',
+                height: '40px',
                 backgroundColor: 'blue',
                 borderRadius: '50%',
                 cursor: 'pointer'
